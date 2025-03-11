@@ -1,76 +1,78 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom"; // ✅ Import Link for navigation
+import { collection, getDocs, getFirestore } from "firebase/firestore";
+import { auth } from "../firebase";
 import styled from "styled-components";
-import { auth, db } from "../firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+
+const db = getFirestore();
 
 const Watchlist = () => {
-  const [movies, setMovies] = useState([]);
+  const [watchlist, setWatchlist] = useState([]);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const fetchWatchlist = async () => {
-      if (!auth.currentUser) return;
-      setUser(auth.currentUser);
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        fetchWatchlist(currentUser.uid);
+      }
+    });
 
-      const watchlistRef = collection(db, "watchlist");
-      const q = query(watchlistRef, where("userId", "==", auth.currentUser.uid));
-      const querySnapshot = await getDocs(q);
-
-      const moviesData = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      setMovies(moviesData);
-    };
-
-    fetchWatchlist();
+    return () => unsubscribe();
   }, []);
 
+  const fetchWatchlist = async (userId) => {
+    const watchlistRef = collection(db, "users", userId, "watchlist");
+    const snapshot = await getDocs(watchlistRef);
+    setWatchlist(snapshot.docs.map((doc) => doc.data()));
+  };
+
+  if (!user) return <h2>Please log in to see your Watchlist.</h2>;
+
   return (
-    <Container>
+    <WatchlistContainer>
       <h2>My Watchlist</h2>
-      <MovieGrid>
-        {movies.length > 0 ? (
-          movies.map((movie) => (
+      {watchlist.length === 0 ? (
+        <p>No movies added yet.</p>
+      ) : (
+        <MovieGrid>
+          {watchlist.map((movie) => (
             <MovieCard key={movie.id}>
-              <StyledLink to={`/movie/${movie.id}`}> {/* ✅ Link to Movie Details Page */}
-                <img
-                  src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`}
-                  alt={movie.title}
-                />
+              <StyledLink to={`/movie/${movie.id}`}> {/* ✅ Clickable Movie Card */}
+                <img src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`} alt={movie.title} />
                 <p>{movie.title}</p>
               </StyledLink>
             </MovieCard>
-          ))
-        ) : (
-          <p>Your watchlist is empty.</p>
-        )}
-      </MovieGrid>
-    </Container>
+          ))}
+        </MovieGrid>
+      )}
+    </WatchlistContainer>
   );
 };
 
 export default Watchlist;
 
 // Styled Components
-const Container = styled.div`
-  padding: 20px;
+const WatchlistContainer = styled.div`
+  text-align: center;
   color: white;
+  background-color: black;
+  padding: 20px;
 `;
 
 const MovieGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 15px;
+  justify-content: center;
 `;
 
 const MovieCard = styled.div`
   text-align: center;
+  width: 150px;
 `;
 
-const StyledLink = styled(Link)`  /* ✅ Styled Link to Remove Default Styling */
+const StyledLink = styled(Link)`  /* ✅ Styled Link */
   text-decoration: none;
   color: white;
   display: block;
@@ -82,10 +84,11 @@ const StyledLink = styled(Link)`  /* ✅ Styled Link to Remove Default Styling *
   }
 
   img:hover {
-    transform: scale(1.05);  /* ✅ Slight Zoom Effect on Hover */
+    transform: scale(1.05);  /* ✅ Zoom effect on hover */
   }
 
   p {
     margin-top: 5px;
+    font-weight: bold;
   }
 `;
