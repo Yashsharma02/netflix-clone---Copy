@@ -8,6 +8,7 @@ import Signup from "./pages/Signup";
 import Watchlist from "./pages/Watchlist";
 import MovieDetails from "./pages/MovieDetails";
 import SearchResults from "./pages/SearchResults"; // ✅ Import Search Page
+import ForgotPassword from "./pages/ForgotPassword";
 
 const App = () => {
   return (
@@ -16,6 +17,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/watchlist" element={<Watchlist />} />
         <Route path="/movie/:id" element={<MovieDetails />} />
